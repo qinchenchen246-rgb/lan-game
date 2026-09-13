@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>小水獭钓鱼</title>
+<style>
+*{box-sizing:border-box}body{margin:0;overflow:hidden;background:#091827;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#fff}
+#game{position:relative;width:100vw;height:100vh;overflow:hidden;background:linear-gradient(#9ddcf2 0 43%,#247da0 43% 100%)}
+.sun{position:absolute;right:10%;top:8%;width:75px;height:75px;border-radius:50%;background:#fff0a8;box-shadow:0 0 40px #fff0a8}
+.cloud{position:absolute;font-size:55px;opacity:.8}.c1{left:8%;top:12%}.c2{left:48%;top:20%}
+#water{position:absolute;top:43%;bottom:0;left:0;right:0;background:repeating-linear-gradient(0deg,#176a8a 0 20px,#1d7692 20px 22px)}
+#otter{position:absolute;z-index:5;left:12%;top:47%;font-size:70px;transition:top .15s}
+#rod{position:absolute;z-index:4;width:120px;height:5px;background:#5b3820;transform-origin:left center;left:18%;top:54%;rotate:-18deg;border-radius:5px}
+#bobber{position:absolute;z-index:5;font-size:24px;left:46%;top:66%}
+#hud{position:absolute;z-index:20;top:12px;left:12px;right:12px;display:flex;gap:7px;flex-wrap:wrap}
+.badge{background:#061525cc;border:1px solid #ffffff33;border-radius:12px;padding:7px 10px;font-size:14px}
+#shop{position:absolute;z-index:20;right:12px;bottom:14px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+button{border:0;border-radius:12px;padding:10px 14px;font-weight:700;background:#fff;color:#173044}
+#cast{position:absolute;z-index:20;left:50%;bottom:18px;transform:translateX(-50%);font-size:18px;background:#ffe7a1}
+#msg{position:absolute;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%);width:min(90%,430px);padding:24px;border-radius:20px;background:#061525ee;border:1px solid #ffffff33;text-align:center;box-shadow:0 20px 70px #0008}
+.fish{position:absolute;font-size:30px;z-index:3;animation:swim linear infinite}
+@keyframes swim{from{transform:translateX(0)}to{transform:translateX(-120vw)}}
+#toast{position:absolute;z-index:25;left:50%;top:30%;transform:translateX(-50%);background:#061525dd;padding:10px 16px;border-radius:12px;display:none}
+</style>
+</head>
+<body>
+<div id="game">
+<div class="sun"></div><div class="cloud c1">☁️</div><div class="cloud c2">☁️</div><div id="water"></div>
+<div id="hud">
+<div class="badge">🐟 鱼 <b id="fishCount">0</b></div>
+<div class="badge">🪙 金币 <b id="coins">0</b></div>
+<div class="badge">🎣 鱼竿 Lv.<b id="rodLv">1</b></div>
+<div class="badge">⏱️ 连续 <b id="combo">0</b></div>
+</div>
+<div id="otter">🦦</div><div id="rod"></div><div id="bobber">🔴</div>
+<div id="shop"><button id="upgrade">升级鱼竿（30🪙）</button></div>
+<button id="cast">🎣 抛竿</button>
+<div id="toast"></div>
+<div id="msg"><h2>🦦 小水獭钓鱼</h2><p>点击「抛竿」，等浮漂动起来时再点一次收线。<br>稀有鱼更值钱，鱼竿升级后更容易钓到好鱼。</p><button id="start">开始钓鱼</button></div>
+</div>
+<script>
+const game=document.querySelector('#game'),bob=document.querySelector('#bobber'),rod=document.querySelector('#rod'),otter=document.querySelector('#otter');
+let running=false,waiting=false,bit=false,fishCount=0,coins=0,rodLv=1,combo=0,timer=null;
+const fishTypes=[
+ {name:'小鱼',emoji:'🐟',value:8,chance:.58},{name:'鲤鱼',emoji:'🐠',value:15,chance:.27},
+ {name:'金鱼',emoji:'🐡',value:28,chance:.11},{name:'神秘月鱼',emoji:'🌙',value:80,chance:.04}
+];
+function toast(t){let x=document.querySelector('#toast');x.textContent=t;x.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>x.style.display='none',1200)}
+function hud(){fishCountEl.textContent=fishCount;coinsEl.textContent=coins;rodLvEl.textContent=rodLv;comboEl.textContent=combo;document.querySelector('#upgrade').textContent='升级鱼竿（'+(30*rodLv)+'🪙）'}
+const fishCountEl=document.querySelector('#fishCount'),coinsEl=document.querySelector('#coins'),rodLvEl=document.querySelector('#rodLv'),comboEl=document.querySelector('#combo');
+function chooseFish(){let r=Math.random(),s=0;for(let f of fishTypes){s+=f.chance+rodLv*.006;if(r<s)return f}return fishTypes[0]}
+function cast(){
+ if(!running||waiting)return;
+ waiting=true;bit=false;document.querySelector('#cast').textContent='等待鱼咬钩…';
+ bob.style.left=(43+Math.random()*22)+'%';bob.style.top=(58+Math.random()*25)+'%';
+ let delay=900+Math.random()*2200;
+ timer=setTimeout(()=>{bit=true;bob.textContent='❗';document.querySelector('#cast').textContent='快！收线！';otter.style.top='44%';},delay);
+}
+function reel(){
+ if(!running||!waiting)return;
+ if(!bit){clearTimeout(timer);waiting=false;combo=0;toast('太早了，鱼儿还没咬钩。');document.querySelector('#cast').textContent='🎣 抛竿';hud();return}
+ let f=chooseFish();fishCount++;coins+=f.value+Math.floor(rodLv/2);combo++;waiting=false;bit=false;bob.textContent='🔴';otter.style.top='47%';
+ toast('钓到 '+f.emoji+' '+f.name+'！ +'+f.value+'🪙');
+ document.querySelector('#cast').textContent='🎣 抛竿';hud();spawnBurst(f.emoji);
+}
+function spawnBurst(e){for(let i=0;i<5;i++){let d=document.createElement('div');d.className='fish';d.textContent=e;d.style.left=(35+Math.random()*20)+'%';d.style.top=(48+Math.random()*20)+'%';d.style.animationDuration=(.7+Math.random()*.7)+'s';game.appendChild(d);setTimeout(()=>d.remove(),900)}}
+function start(){running=true;msg.style.display='none';hud();spawnFish();}
+function spawnFish(){if(!running)return;let d=document.createElement('div');d.className='fish';d.textContent=['🐟','🐠','🐡'][Math.floor(Math.random()*3)];d.style.left='105%';d.style.top=(50+Math.random()*43)+'%';d.style.animationDuration=(5+Math.random()*5)+'s';game.appendChild(d);setTimeout(()=>d.remove(),11000);setTimeout(spawnFish,700+Math.random()*1300)}
+document.querySelector('#start').onclick=start;
+document.querySelector('#cast').onclick=()=>waiting&&bit?reel():cast();
+document.querySelector('#upgrade').onclick=()=>{let cost=30*rodLv;if(coins>=cost){coins-=cost;rodLv++;toast('鱼竿升级到 Lv.'+rodLv);hud()}else toast('金币不够，再钓几条。')};
+</script>
+</div></body></html>
